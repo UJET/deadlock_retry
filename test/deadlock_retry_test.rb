@@ -7,7 +7,7 @@ require 'active_record/version'
 puts "Testing ActiveRecord #{ActiveRecord::VERSION::STRING}"
 
 require 'test/unit'
-require 'mocha'
+require 'mocha/test_unit'
 require 'logger'
 require "deadlock_retry"
 
@@ -49,7 +49,9 @@ class MockModel
     "MySQL"
   end
 
-  include DeadlockRetry
+  class << self
+    prepend DeadlockRetry::ClassMethods
+  end
 end
 
 class DeadlockRetryTest < Test::Unit::TestCase
@@ -89,7 +91,7 @@ class DeadlockRetryTest < Test::Unit::TestCase
   end
 
   def test_included_by_default
-    assert ActiveRecord::Base.respond_to?(:transaction_with_deadlock_handling)
+    assert_equal ActiveRecord::Base.singleton_class.ancestors.first, DeadlockRetry::ClassMethods
   end
 
   def test_innodb_status_availability

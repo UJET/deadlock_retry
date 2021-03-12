@@ -1,15 +1,6 @@
 require 'active_support/core_ext/module/attribute_accessors'
 
 module DeadlockRetry
-  def self.included(base)
-    base.extend(ClassMethods)
-    base.class_eval do
-      class << self
-        alias_method_chain :transaction, :deadlock_handling
-      end
-    end
-  end
-
   mattr_accessor :innodb_status_cmd
 
   module ClassMethods
@@ -22,13 +13,13 @@ module DeadlockRetry
     MAXIMUM_RETRIES_ON_DEADLOCK = 3
 
 
-    def transaction_with_deadlock_handling(*objects, &block)
+    def transaction(*objects, &block)
       retry_count = 0
 
       check_innodb_status_available
 
       begin
-        transaction_without_deadlock_handling(*objects, &block)
+        super
       rescue ActiveRecord::StatementInvalid => error
         raise if in_nested_transaction?
         if DEADLOCK_ERROR_MESSAGES.any? { |msg| error.message =~ /#{Regexp.escape(msg)}/ }
@@ -104,4 +95,4 @@ module DeadlockRetry
   end
 end
 
-ActiveRecord::Base.send(:include, DeadlockRetry) if defined?(ActiveRecord)
+ActiveRecord::Base.singleton_class.prepend(DeadlockRetry::ClassMethods) if defined?(ActiveRecord)
