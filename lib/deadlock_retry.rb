@@ -13,7 +13,7 @@ module DeadlockRetry
     MAXIMUM_RETRIES_ON_DEADLOCK = 3
 
 
-    def transaction(**objects, &block)
+    def transaction(*objects, &block)
       retry_count = 0
 
       check_innodb_status_available
